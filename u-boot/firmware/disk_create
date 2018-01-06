@@ -1,0 +1,41 @@
+#!/bin/sh
+
+# uncomment line below and set to the correct disk
+disk=/dev/sda
+
+if [ -z "${disk}" ] ; then
+   echo "You must uncomment/set the 'disk' variable"
+   exit -1
+fi
+
+workarea="."
+
+stage1File=$workarea/stage1.wrapped
+ubootFile=$workarea/u-boot.wrapped
+kernelFile=$workarea/uImage
+
+perl <<EOF | dd of="$disk" bs=512
+    print "\x00" x 0x1a4;
+    print "\x00\x5f\x01\x00";
+    print "\x00\xdf\x00\x00";
+    print "\x00\x80\x00\x00";
+    print "\x00" x (0x1b0 -0x1a4 -12 );
+    print "\x22\x80\x00\x00";
+    print "\x22\x00\x00\x00";
+    print "\x00\x80\x00\x00";
+EOF
+
+if [ -f $stage1File ];then
+	echo "Writing stage 1"
+	dd if=$stage1File    of="$disk" bs=512 seek=34
+fi
+
+if [ -f $ubootFile ];then
+	echo "Writing uboot"
+	dd if=$ubootFile     of="$disk" bs=512 seek=154
+fi
+
+if [ -f $kernelFile ];then
+	echo "Writing kernel to "
+	dd if=$kernelFile of="$disk"1 bs=512 
+fi
